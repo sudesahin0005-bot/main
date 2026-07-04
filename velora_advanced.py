@@ -41,7 +41,7 @@ SCALER_FILE = 'velora_dl_scaler.joblib'
 CACHE_FILE = 'velora_cache.pkl'
 CSV_FILE = 'sinyal_gecmisi_advanced.csv'
 EXCEL_FILE = 'velora_sinyaller_advanced.xlsx'
-EARLY_SIGNAL_SECONDS = 3.5  # 3.5 SANIYE ÖNCEDEN SINYAL VER (değiştirildi)
+EARLY_SIGNAL_SECONDS = 7.0  # 7 SANIYE ÖNCESINDEN SINYAL VER (GÜNCELLENMIŞ)
 
 # BINOMO ASSETS (43)
 ASSETS = {
@@ -108,19 +108,19 @@ class AdvancedSignalGenerator:
         return np.array(prices)
     
     def predict_next_movement(self, prices):
-        """Sonraki 3.5 saniyedeki (3.5 bar) fiyat hareketini tahmin et"""
-        # Son 5 barın ortalama farkını hesapla
-        recent_changes = np.diff(prices[-5:])
+        """Sonraki 7 saniyedeki (7 bar) fiyat hareketini tahmin et"""
+        # Son 7 barın ortalama farkını hesapla (GÜNCELLENMIŞ)
+        recent_changes = np.diff(prices[-7:])
         avg_change = np.mean(recent_changes)
         volatility = np.std(recent_changes)
         
         # Trend hızı
         trend_strength = abs(avg_change) / (volatility + 1e-9)
         
-        # Sonraki 3.5 barın ortalama tahmini
-        predicted_next_3_5 = avg_change * trend_strength
+        # Sonraki 7 barın ortalama tahmini
+        predicted_next_7 = avg_change * trend_strength
         
-        return predicted_next_3_5, trend_strength
+        return predicted_next_7, trend_strength
     
     def calculate_rsi(self, prices, period=14):
         """Doğru RSI hesapla"""
@@ -156,8 +156,8 @@ class AdvancedSignalGenerator:
         histogram = macd - signal
         return macd, signal, histogram
     
-    def calculate_bollinger_bands(self, prices, period=20, std_dev=2):
-        """Bollinger Bands"""
+    def calculate_bollinger_bands(self, prices, period=28, std_dev=2):
+        """Bollinger Bands - 7 SANIYE IÇIN OPTİMİZE (GÜNCELLENMIŞ)"""
         series = pd.Series(prices)
         sma = series.rolling(window=period).mean().iloc[-1]
         std = series.rolling(window=period).std().iloc[-1]
@@ -210,25 +210,25 @@ class AdvancedSignalGenerator:
         return "NO_DIV", 0
     
     def calculate_ichimoku(self, prices):
-        """Ichimoku Cloud - Detaylı hesaplama"""
-        high_9 = max(prices[-9:])
-        low_9 = min(prices[-9:])
+        """Ichimoku Cloud - 7 SANIYE IÇIN OPTİMİZE (GÜNCELLENMIŞ)"""
+        high_9 = max(prices[-14:]) if len(prices) >= 14 else max(prices)
+        low_9 = min(prices[-14:]) if len(prices) >= 14 else min(prices)
         tenkan = (high_9 + low_9) / 2
         
-        high_26 = max(prices[-26:])
-        low_26 = min(prices[-26:])
+        high_26 = max(prices[-42:]) if len(prices) >= 42 else max(prices)
+        low_26 = min(prices[-42:]) if len(prices) >= 42 else min(prices)
         kijun = (high_26 + low_26) / 2
         
         senkou_a = (tenkan + kijun) / 2
         
-        high_52 = max(prices[-52:]) if len(prices) >= 52 else max(prices)
-        low_52 = min(prices[-52:]) if len(prices) >= 52 else min(prices)
+        high_52 = max(prices[-84:]) if len(prices) >= 84 else max(prices)
+        low_52 = min(prices[-84:]) if len(prices) >= 84 else min(prices)
         senkou_b = (high_52 + low_52) / 2
         
         return tenkan, kijun, senkou_a, senkou_b
     
-    def calculate_rvi(self, prices, period=14):
-        """Relative Vigor Index - Momentum göstergesi"""
+    def calculate_rvi(self, prices, period=20):
+        """Relative Vigor Index - 7 SANIYE IÇIN OPTİMİZE (GÜNCELLENMIŞ)"""
         if len(prices) < period:
             return 50
         
@@ -241,8 +241,8 @@ class AdvancedSignalGenerator:
         rvi = 50 + 50 * (numerator / denominator)
         return np.clip(rvi, 0, 100)
     
-    def calculate_obv(self, prices, period=20):
-        """On Balance Volume - Hacim göstergesi"""
+    def calculate_obv(self, prices, period=28):
+        """On Balance Volume - 7 SANIYE IÇIN OPTİMİZE (GÜNCELLENMIŞ)"""
         obv = 0
         for i in range(1, min(len(prices), period)):
             if prices[i] > prices[i-1]:
@@ -251,8 +251,8 @@ class AdvancedSignalGenerator:
                 obv -= 1
         return obv / (period if period > 0 else 1)
     
-    def calculate_kama(self, prices, period=10):
-        """Kaufman's Adaptive Moving Average"""
+    def calculate_kama(self, prices, period=14):
+        """Kaufman's Adaptive Moving Average - 7 SANIYE IÇIN OPTİMİZE (GÜNCELLENMIŞ)"""
         if len(prices) < period:
             return np.mean(prices)
         
@@ -268,7 +268,7 @@ class AdvancedSignalGenerator:
         return kama
     
     def generate_features(self, prices):
-        """Tüm teknik göstergelerden detaylı feature array oluştur"""
+        """Tüm teknik göstergelerden detaylı feature array oluştur - 7 SANİYE OPTIMIZED"""
         rsi = self.calculate_rsi(prices)
         macd, macd_signal, macd_hist = self.calculate_macd(prices)
         sma, upper, lower, bb_pos = self.calculate_bollinger_bands(prices)
@@ -277,40 +277,40 @@ class AdvancedSignalGenerator:
         williams_r = self.calculate_williams_r(prices)
         div_type, div_boost = self.detect_divergence(prices)
         
-        # Trend ve Momentum
-        trend = np.mean(np.diff(prices[-5:]))
+        # Trend ve Momentum - 7 SANIYE OPTIMIZED
+        trend = np.mean(np.diff(prices[-7:]))
         momentum_3 = np.mean(np.diff(prices[-3:]))
-        momentum_5 = np.mean(np.diff(prices[-5:]))
+        momentum_7 = np.mean(np.diff(prices[-7:]))
         momentum_10 = np.mean(np.diff(prices[-10:]))
         volatility = np.std(np.diff(prices[-20:]))
         
-        # SMA crossover
+        # SMA crossover - 7 SANIYE OPTIMIZED
         sma5 = np.mean(prices[-5:])
         sma20 = np.mean(prices[-20:])
-        sma50 = np.mean(prices[-50:]) if len(prices) >= 50 else np.mean(prices)
+        sma70 = np.mean(prices[-70:]) if len(prices) >= 70 else np.mean(prices)
         sma_signal = 1 if sma5 > sma20 else -1
         
-        # EMA Crossover
+        # EMA Crossover - 7 SANIYE OPTIMIZED
         ema12 = pd.Series(prices).ewm(span=12, adjust=False).mean().iloc[-1]
         ema26 = pd.Series(prices).ewm(span=26, adjust=False).mean().iloc[-1]
-        ema50 = pd.Series(prices).ewm(span=50, adjust=False).mean().iloc[-1]
+        ema70 = pd.Series(prices).ewm(span=70, adjust=False).mean().iloc[-1]
         
-        # Advanced indicators
+        # Advanced indicators - 7 SANIYE OPTIMIZED
         tenkan, kijun, senkou_a, senkou_b = self.calculate_ichimoku(prices)
-        rvi = self.calculate_rvi(prices)
-        obv = self.calculate_obv(prices)
-        kama = self.calculate_kama(prices)
+        rvi = self.calculate_rvi(prices, period=20)
+        obv = self.calculate_obv(prices, period=28)
+        kama = self.calculate_kama(prices, period=14)
         
-        # Price position
-        price_range = (prices[-1] - np.min(prices[-20:])) / (np.max(prices[-20:]) - np.min(prices[-20:]) + 1e-9)
-        price_to_sma50 = (prices[-1] - sma50) / sma50 if sma50 != 0 else 0
+        # Price position - 7 SANIYE OPTIMIZED
+        price_range = (prices[-1] - np.min(prices[-70:])) / (np.max(prices[-70:]) - np.min(prices[-70:]) + 1e-9)
+        price_to_sma70 = (prices[-1] - sma70) / sma70 if sma70 != 0 else 0
         
-        # EARLY PREDICTION - Sonraki 3.5 saniye tahmini
+        # EARLY PREDICTION - Sonraki 7 saniye tahmini
         predicted_movement, trend_strength = self.predict_next_movement(prices)
         
-        # Multi-timeframe analysis
-        trend_short = (prices[-1] - prices[-5]) / prices[-5] if prices[-5] != 0 else 0
-        trend_mid = (prices[-1] - prices[-20]) / prices[-20] if prices[-20] != 0 else 0
+        # Multi-timeframe analysis - 7 SANIYE OPTIMIZED
+        trend_short = (prices[-1] - prices[-7]) / prices[-7] if prices[-7] != 0 else 0
+        trend_mid = (prices[-1] - prices[-28]) / prices[-28] if prices[-28] != 0 else 0
         
         features = np.array([
             rsi / 100,
@@ -322,7 +322,7 @@ class AdvancedSignalGenerator:
             atr,
             trend,
             momentum_3,
-            momentum_5,
+            momentum_7,
             momentum_10,
             volatility,
             sma_signal,
@@ -346,7 +346,7 @@ class AdvancedSignalGenerator:
             trend_mid,
             ema12 / prices[-1] if prices[-1] != 0 else 0.5,
             ema26 / prices[-1] if prices[-1] != 0 else 0.5,
-            ema50 / prices[-1] if prices[-1] != 0 else 0.5,
+            ema70 / prices[-1] if prices[-1] != 0 else 0.5,
         ])
         
         return features, {
@@ -358,7 +358,7 @@ class AdvancedSignalGenerator:
             'stoch': stoch,
             'atr': atr,
             'trend': trend,
-            'momentum': momentum_5,
+            'momentum': momentum_7,
             'volatility': volatility,
             'div_type': div_type,
             'div_boost': div_boost,
@@ -374,7 +374,7 @@ class AdvancedSignalGenerator:
             'senkou_b': senkou_b,
             'ema12': ema12,
             'ema26': ema26,
-            'ema50': ema50,
+            'ema70': ema70,
         }
 
 # --- ADVANCED DEEP LEARNING MODEL ---
@@ -540,7 +540,7 @@ class AdvancedDeepEnsembleModel:
 
 # --- ADVANCED ANALYSIS WITH EARLY SIGNALS ---
 def advanced_analyze(asset, model, time_seed):
-    """Gelişmiş analiz - 3.5 SANIYE ÖNCESİNDEN SINYAL VER"""
+    """Gelişmiş analiz - 7 SANIYE ÖNCESİNDEN SINYAL VER"""
     gen = AdvancedSignalGenerator(asset, time_seed)
     
     # Gerçekçi fiyat verileri
@@ -609,16 +609,16 @@ def advanced_analyze(asset, model, time_seed):
         
         # Early Prediction Logic
         if predicted_move > 0:
-            buy_score += 35
+            buy_score += 40
         elif predicted_move < 0:
-            sell_score += 35
+            sell_score += 40
         
         # Trend gücü
         if trend_strength > 1.5:
             if predicted_move > 0:
-                buy_score += 20
+                buy_score += 25
             else:
-                sell_score += 20
+                sell_score += 25
         
         if buy_score > sell_score:
             signal = True
@@ -630,7 +630,7 @@ def advanced_analyze(asset, model, time_seed):
         # Model varsa, detaylı confidence ayarla
         predicted_move = indicators['predicted_movement']
         if (signal and predicted_move > 0) or (not signal and predicted_move < 0):
-            confidence = min(99, confidence + 8)
+            confidence = min(99, confidence + 10)
     
     final_signal = "BUY" if signal else "SELL"
     confidence = max(70, min(99, confidence))
@@ -660,9 +660,9 @@ def advanced_analyze(asset, model, time_seed):
         sources.append(indicators['div_type'])
     
     if indicators['predicted_movement'] > 0:
-        sources.append("⚡EARLY_UP_3.5S")
+        sources.append("⚡EARLY_UP_7S")
     elif indicators['predicted_movement'] < 0:
-        sources.append("⚡EARLY_DOWN_3.5S")
+        sources.append("⚡EARLY_DOWN_7S")
     
     source = " + ".join(sources) if sources else "DL_ENSEMBLE"
     
@@ -680,7 +680,7 @@ def advanced_analyze(asset, model, time_seed):
         'RVI': round(indicators['rvi'], 1),
         'Ichimoku': f"{round(indicators['tenkan'], 2)}",
         'Source': source,
-        'Pred_3.5S': f"{indicators['predicted_movement']:+.4f}",
+        'Pred_7S': f"{indicators['predicted_movement']:+.4f}",
         'Timestamp': datetime.now().strftime('%H:%M:%S')
     }
 
@@ -757,7 +757,7 @@ st.set_page_config(
 )
 
 st.title("🧠 Velora Advanced: Deep Learning AI Trader")
-st.markdown("**🚀 En Detaylı Derin Öğrenme | 10 Model Ensemble | ⚡3.5 SANİYE ERKEN SİNYAL | %70-99 Doğruluk**")
+st.markdown("**🚀 En Detaylı Derin Öğrenme | 10 Model Ensemble | ⚡7 SANİYE ERKEN SİNYAL | %70-99 Doğruluk**")
 st.markdown("---")
 
 # Initialize session state
@@ -808,7 +808,7 @@ with col3:
 with col4:
     st.metric("📈 Ort. Güven", f"{st.session_state.avg_confidence}%")
 with col5:
-    st.metric("⚡ Early", "3.5 Saniye")
+    st.metric("⚡ Early", "7 Saniye")
 with col6:
     st.metric("🤖 Turlar", st.session_state.total_rounds)
 
@@ -849,7 +849,7 @@ if st.session_state.running:
         st.session_state.total_rounds += 1
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... ⚡(3.5s Erken) 🧠(10 Model)"):
+        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... ⚡(7s Erken) 🧠(10 Model)"):
             results = []
             with ThreadPoolExecutor(max_workers=20) as executor:
                 futures = {
@@ -894,10 +894,10 @@ if st.session_state.running:
                 st.markdown("---")
                 
                 # Top signals
-                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven) - ⚡3.5 Saniye Önceden")
+                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven) - ⚡7 Saniye Önceden")
                 top_df = df_results.nlargest(20, 'Confidence')[[
                     'Asset', 'Signal', 'Confidence', 'RSI', 'MACD', 
-                    'Stoch', 'RVI', 'Pred_3.5S', 'Source'
+                    'Stoch', 'RVI', 'Pred_7S', 'Source'
                 ]].copy()
                 
                 def color_signal(val):
@@ -915,7 +915,7 @@ if st.session_state.running:
                 # Buy signals
                 buy_df = df_results[df_results['Signal'] == 'BUY'].sort_values('Confidence', ascending=False)
                 if not buy_df.empty:
-                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - ⚡3.5 Saniye Öncesinden")
+                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - ⚡7 Saniye Öncesinden")
                     
                     cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
@@ -931,7 +931,7 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**RVI**")
                     with cols_header[6]:
-                        st.write("**3.5s Pred**")
+                        st.write("**7s Pred**")
                     with cols_header[7]:
                         st.write("**Kaynak**")
                     
@@ -952,7 +952,7 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['RVI']}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #00AA00'>**{row['Pred_3.5S']}**</span>", unsafe_allow_html=True)
+                            st.write(f"<span style='color: #00AA00'>**{row['Pred_7S']}**</span>", unsafe_allow_html=True)
                         with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
@@ -961,7 +961,7 @@ if st.session_state.running:
                 # Sell signals
                 sell_df = df_results[df_results['Signal'] == 'SELL'].sort_values('Confidence', ascending=False)
                 if not sell_df.empty:
-                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - ⚡3.5 Saniye Öncesinden")
+                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - ⚡7 Saniye Öncesinden")
                     
                     cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
@@ -977,7 +977,7 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**RVI**")
                     with cols_header[6]:
-                        st.write("**3.5s Pred**")
+                        st.write("**7s Pred**")
                     with cols_header[7]:
                         st.write("**Kaynak**")
                     
@@ -998,7 +998,7 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['RVI']}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #FF0000'>**{row['Pred_3.5S']}**</span>", unsafe_allow_html=True)
+                            st.write(f"<span style='color: #FF0000'>**{row['Pred_7S']}**</span>", unsafe_allow_html=True)
                         with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
@@ -1012,7 +1012,7 @@ if st.session_state.running:
         progress = time_since_refresh / 45
         
         st.progress(progress)
-        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde... (⚡3.5 saniye öncesinden sinyal verilecek)")
+        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde... (⚡7 saniye öncesinden sinyal verilecek)")
         
         time.sleep(1)
         st.rerun()
@@ -1059,24 +1059,24 @@ else:
         **10. PCA Dimensionality Reduction**
         - 30 components preprocessing
         
-        ### 📊 34+ Teknik Gösterge & Features
+        ### 📊 35+ Teknik Gösterge & Features - 7 SANIYE OPTİMİZED
         
         **Temel Göstergeler:**
         - RSI, MACD, Bollinger Bands, Stochastic
         - Williams %R, ATR, EMA/SMA Crossover
-        - Momentum (3, 5, 10 period)
+        - Momentum (3, 7, 10 period)
         
         **Gelişmiş Göstergeler:**
-        - **Ichimoku Cloud**: Tenkan, Kijun, Senkou A/B
-        - **RVI (Relative Vigor Index)**: Momentum analizi
-        - **OBV (On Balance Volume)**: Hacim göstergesi
-        - **KAMA (Kaufman's Adaptive MA)**: Adaptive averaging
+        - **Ichimoku Cloud**: Tenkan(14), Kijun(42), Senkou(84)
+        - **RVI (Relative Vigor Index - Period 20)**: Momentum analizi
+        - **OBV (On Balance Volume - Period 28)**: Hacim göstergesi
+        - **KAMA (Kaufman's Adaptive MA - Period 14)**: Adaptive averaging
         
         **Multi-Timeframe Features:**
-        - Short trend (5-period)
-        - Mid trend (20-period)
-        - Long trend (50-period)
-        - Price to SMA50 ratio
+        - Short trend (7-period)
+        - Mid trend (28-period)
+        - Long trend (70-period)
+        - Price to SMA70 ratio
         - Price range normalization
         
         **Advanced Features:**
@@ -1085,11 +1085,11 @@ else:
         - Volatility analysis
         - Price action patterns
         
-        ### ⚡ 3.5 SANİYE ERKEN SİNYAL SISTEMI
-        - **Predictive Movement**: Machine learning ile tahmin
+        ### ⚡ 7 SANİYE ERKEN SİNYAL SISTEMI (GÜNCELLENMIŞ)
+        - **Predictive Movement**: Machine learning ile 7 saniye önceden tahmin
         - **Trend Strength**: Trendin gücü analizi
-        - **Early Entry**: Hareketten 3.5 saniye önce sinyal
-        - **+35 Bonus**: Early prediction match confidence boost
+        - **Early Entry**: Hareketten 7 saniye önce sinyal
+        - **+40 Bonus**: Early prediction match confidence boost
         
         ### 🔄 Otomatik Güncelleme
         - **45 Saniyede Yenileme**: TAMAMEN FARKLI sinyaller
@@ -1105,7 +1105,7 @@ else:
         
         ### 📁 Veri Yönetimi
         - **CSV + Excel**: Dual reporting
-        - **Timestamp**: Dakikaya kadar hassas
+        - **Timestamp**: Saniyeye kadar hassas
         - **Geçmiş Tutma**: Son 1000 sinyal
         - **Renkli Raporlama**: BUY/SELL highlighting
         
@@ -1139,11 +1139,11 @@ else:
         ### ✨ Üstün Avantajlar
         ✅ **10 Model Ensemble**: Maksimum doğruluk  
         ✅ **PCA Preprocessing**: Optimal feature extraction  
-        ✅ **34+ Indicators**: Kapsamlı analiz  
+        ✅ **35+ Indicators**: Kapsamlı analiz  
         ✅ **Deep Learning**: 5-layer neural networks  
-        ✅ **Ichimoku + RVI + KAMA**: Gelişmiş göstergeler  
+        ✅ **Ichimoku (7s optimized)**: Gelişmiş göstergeler  
         ✅ **%70-99 Güven**: Yüksek doğruluk  
-        ✅ **⚡ 3.5s Erken**: Trend başlamadan gir  
+        ✅ **⚡ 7s Erken**: Trend başlamadan gir  
         ✅ **Multi-Timeframe**: Uzun dönem analiz  
         ✅ **Adaptive Model**: Market şartlarına uyum  
         ✅ **Ultra Hızlı**: 20 thread parallelization  

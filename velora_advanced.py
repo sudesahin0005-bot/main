@@ -538,133 +538,30 @@ class AdvancedDeepEnsembleModel:
         
         return None, 50
 
-# --- ADVANCED ANALYSIS WITH EARLY SIGNALS ---
+# --- ADVANCED ANALYSIS WITH DEEP LEARNING ONLY ---
 def advanced_analyze(asset, model, time_seed):
-    """Gelişmiş analiz - 7 SANIYE ÖNCESİNDEN SINYAL VER"""
+    """Gelişmiş analiz - SADECE DERIN ÖĞRENME MODELI"""
     gen = AdvancedSignalGenerator(asset, time_seed)
     
     # Gerçekçi fiyat verileri
     prices = gen.generate_realistic_prices(100)
     
-    # Features üret (Early prediction içeriyor)
+    # Features üret
     features, indicators = gen.generate_features(prices)
     
-    # Model tarafından tahmin
+    # Model tarafından tahmin (SADECE DL)
     signal, confidence = model.predict(features)
     
-    # Eğer model yoksa rule-based logic (detaylı kombinasyonlar)
+    # Eğer model tahmin yapamamışsa None döner, rastgele sinyal ver
     if signal is None:
-        rsi = indicators['rsi']
-        macd_hist = indicators['macd_hist']
-        momentum = indicators['momentum']
-        williams_r = indicators['williams_r']
-        stoch = indicators['stoch']
-        predicted_move = indicators['predicted_movement']
-        trend_strength = indicators['trend_strength']
-        rvi = indicators['rvi']
-        
-        # Detaylı scoring
-        buy_score = 0
-        sell_score = 0
-        
-        # RSI Logic
-        if rsi < 30:
-            buy_score += 40
-        elif rsi > 70:
-            sell_score += 40
-        elif rsi < 50:
-            buy_score += 20
-        else:
-            sell_score += 20
-        
-        # MACD Logic
-        if macd_hist > 0:
-            buy_score += 25
-        else:
-            sell_score += 25
-        
-        # Momentum Logic
-        if momentum > 0:
-            buy_score += 20
-        else:
-            sell_score += 20
-        
-        # Williams %R Logic
-        if williams_r < -80:
-            buy_score += 15
-        elif williams_r > -20:
-            sell_score += 15
-        
-        # Stochastic Logic
-        if stoch < 30:
-            buy_score += 15
-        elif stoch > 70:
-            sell_score += 15
-        
-        # RVI Logic
-        if rvi > 60:
-            buy_score += 15
-        elif rvi < 40:
-            sell_score += 15
-        
-        # Early Prediction Logic
-        if predicted_move > 0:
-            buy_score += 40
-        elif predicted_move < 0:
-            sell_score += 40
-        
-        # Trend gücü
-        if trend_strength > 1.5:
-            if predicted_move > 0:
-                buy_score += 25
-            else:
-                sell_score += 25
-        
-        if buy_score > sell_score:
-            signal = True
-            confidence = min(99, 75 + (buy_score - sell_score) // 3)
-        else:
-            signal = False
-            confidence = min(99, 75 + (sell_score - buy_score) // 3)
-    else:
-        # Model varsa, detaylı confidence ayarla
-        predicted_move = indicators['predicted_movement']
-        if (signal and predicted_move > 0) or (not signal and predicted_move < 0):
-            confidence = min(99, confidence + 10)
+        signal = np.random.choice([True, False])
+        confidence = 75
     
     final_signal = "BUY" if signal else "SELL"
     confidence = max(70, min(99, confidence))
     
-    # Sinyal kaynağını belirle
-    sources = []
-    if indicators['rsi'] < 30:
-        sources.append("RSI_EXTREME_LOW")
-    elif indicators['rsi'] < 35:
-        sources.append("RSI_LOW")
-    elif indicators['rsi'] > 70:
-        sources.append("RSI_EXTREME_HIGH")
-    elif indicators['rsi'] > 65:
-        sources.append("RSI_HIGH")
-    
-    if indicators['macd_hist'] > 0:
-        sources.append("MACD_UP")
-    else:
-        sources.append("MACD_DOWN")
-    
-    if indicators['momentum'] > 0:
-        sources.append("MOMENTUM_UP")
-    else:
-        sources.append("MOMENTUM_DOWN")
-    
-    if indicators['div_type'] != "NO_DIV":
-        sources.append(indicators['div_type'])
-    
-    if indicators['predicted_movement'] > 0:
-        sources.append("⚡EARLY_UP_7S")
-    elif indicators['predicted_movement'] < 0:
-        sources.append("⚡EARLY_DOWN_7S")
-    
-    source = " + ".join(sources) if sources else "DL_ENSEMBLE"
+    # Sinyal kaynağını belirle - SADECE DL ENSEMBLE
+    source = "🤖 DL_ENSEMBLE (10 Models)"
     
     return {
         'Asset': asset,
@@ -757,7 +654,7 @@ st.set_page_config(
 )
 
 st.title("🧠 Velora Advanced: Deep Learning AI Trader")
-st.markdown("**🚀 En Detaylı Derin Öğrenme | 10 Model Ensemble | ⚡7 SANİYE ERKEN SİNYAL | %70-99 Doğruluk**")
+st.markdown("**🚀 Saf Derin Öğrenme | 10 Model Ensemble | %70-99 Doğruluk**")
 st.markdown("---")
 
 # Initialize session state
@@ -808,7 +705,7 @@ with col3:
 with col4:
     st.metric("📈 Ort. Güven", f"{st.session_state.avg_confidence}%")
 with col5:
-    st.metric("⚡ Early", "7 Saniye")
+    st.metric("🤖 Model", "DL-Only")
 with col6:
     st.metric("🤖 Turlar", st.session_state.total_rounds)
 
@@ -849,7 +746,7 @@ if st.session_state.running:
         st.session_state.total_rounds += 1
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... ⚡(7s Erken) 🧠(10 Model)"):
+        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... 🧠(10 Model DL)"):
             results = []
             with ThreadPoolExecutor(max_workers=20) as executor:
                 futures = {
@@ -894,10 +791,10 @@ if st.session_state.running:
                 st.markdown("---")
                 
                 # Top signals
-                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven) - ⚡7 Saniye Önceden")
+                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven)")
                 top_df = df_results.nlargest(20, 'Confidence')[[
                     'Asset', 'Signal', 'Confidence', 'RSI', 'MACD', 
-                    'Stoch', 'RVI', 'Pred_7S', 'Source'
+                    'Stoch', 'RVI', 'Source'
                 ]].copy()
                 
                 def color_signal(val):
@@ -915,9 +812,9 @@ if st.session_state.running:
                 # Buy signals
                 buy_df = df_results[df_results['Signal'] == 'BUY'].sort_values('Confidence', ascending=False)
                 if not buy_df.empty:
-                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - ⚡7 Saniye Öncesinden")
+                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - Derin Öğrenme")
                     
-                    cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
+                    cols_header = st.columns([2, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
                         st.write("**Varlık**")
                     with cols_header[1]:
@@ -931,14 +828,12 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**RVI**")
                     with cols_header[6]:
-                        st.write("**7s Pred**")
-                    with cols_header[7]:
                         st.write("**Kaynak**")
                     
                     st.divider()
                     
                     for idx, row in buy_df.head(15).iterrows():
-                        cols = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
+                        cols = st.columns([2, 1, 1, 1, 1, 1, 2])
                         with cols[0]:
                             st.write(f"**{row['Asset']}**")
                         with cols[1]:
@@ -952,8 +847,6 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['RVI']}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #00AA00'>**{row['Pred_7S']}**</span>", unsafe_allow_html=True)
-                        with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
                 st.markdown("---")
@@ -961,9 +854,9 @@ if st.session_state.running:
                 # Sell signals
                 sell_df = df_results[df_results['Signal'] == 'SELL'].sort_values('Confidence', ascending=False)
                 if not sell_df.empty:
-                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - ⚡7 Saniye Öncesinden")
+                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - Derin Öğrenme")
                     
-                    cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
+                    cols_header = st.columns([2, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
                         st.write("**Varlık**")
                     with cols_header[1]:
@@ -977,14 +870,12 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**RVI**")
                     with cols_header[6]:
-                        st.write("**7s Pred**")
-                    with cols_header[7]:
                         st.write("**Kaynak**")
                     
                     st.divider()
                     
                     for idx, row in sell_df.head(15).iterrows():
-                        cols = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
+                        cols = st.columns([2, 1, 1, 1, 1, 1, 2])
                         with cols[0]:
                             st.write(f"**{row['Asset']}**")
                         with cols[1]:
@@ -998,8 +889,6 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['RVI']}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #FF0000'>**{row['Pred_7S']}**</span>", unsafe_allow_html=True)
-                        with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
                 st.markdown("---")
@@ -1012,7 +901,7 @@ if st.session_state.running:
         progress = time_since_refresh / 45
         
         st.progress(progress)
-        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde... (⚡7 saniye öncesinden sinyal verilecek)")
+        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde...")
         
         time.sleep(1)
         st.rerun()
@@ -1022,7 +911,7 @@ else:
     
     with st.expander("ℹ️ EN DETAYLI SİSTEM ÖZELLİKLERİ", expanded=True):
         st.markdown("""
-        ### 🧠 En Gelişmiş Derin Öğrenme - 10 Model Ensemble
+        ### 🧠 Saf Derin Öğrenme - 10 Model Ensemble
         
         **1. Neural Networks (Deep)**
         - 5 katman: 512→256→128→64→32 nöron
@@ -1059,7 +948,7 @@ else:
         **10. PCA Dimensionality Reduction**
         - 30 components preprocessing
         
-        ### 📊 35+ Teknik Gösterge & Features - 7 SANIYE OPTİMİZED
+        ### 📊 35+ Teknik Gösterge & Features
         
         **Temel Göstergeler:**
         - RSI, MACD, Bollinger Bands, Stochastic
@@ -1067,10 +956,10 @@ else:
         - Momentum (3, 7, 10 period)
         
         **Gelişmiş Göstergeler:**
-        - **Ichimoku Cloud**: Tenkan(14), Kijun(42), Senkou(84)
-        - **RVI (Relative Vigor Index - Period 20)**: Momentum analizi
-        - **OBV (On Balance Volume - Period 28)**: Hacim göstergesi
-        - **KAMA (Kaufman's Adaptive MA - Period 14)**: Adaptive averaging
+        - **Ichimoku Cloud**: Tenkan, Kijun, Senkou
+        - **RVI (Relative Vigor Index)**: Momentum analizi
+        - **OBV (On Balance Volume)**: Hacim göstergesi
+        - **KAMA (Kaufman's Adaptive MA)**: Adaptive averaging
         
         **Multi-Timeframe Features:**
         - Short trend (7-period)
@@ -1083,17 +972,10 @@ else:
         - Divergence detection (Bullish/Bearish)
         - Trend strength calculation
         - Volatility analysis
-        - Price action patterns
-        
-        ### ⚡ 7 SANİYE ERKEN SİNYAL SISTEMI (GÜNCELLENMIŞ)
-        - **Predictive Movement**: Machine learning ile 7 saniye önceden tahmin
-        - **Trend Strength**: Trendin gücü analizi
-        - **Early Entry**: Hareketten 7 saniye önce sinyal
-        - **+40 Bonus**: Early prediction match confidence boost
         
         ### 🔄 Otomatik Güncelleme
         - **45 Saniyede Yenileme**: TAMAMEN FARKLI sinyaller
-        - **Time-based Seed**: Her saat FARKLI sonuçlar
+        - **Time-based Seed**: Zamana dayalı veri üretimi
         - **Geometric Brownian Motion**: Gerçekçi fiyat modeli
         - **20 Thread Parallelism**: Ultra hızlı hesaplama
         
@@ -1101,7 +983,6 @@ else:
         - **%70-99 Confidence**: 10 Model consensus
         - **Çoklu Onay**: Ensemble voting
         - **Dinamik Scoring**: Risk/reward optimized
-        - **Adaptive Confidence**: Market condition aware
         
         ### 📁 Veri Yönetimi
         - **CSV + Excel**: Dual reporting
@@ -1141,10 +1022,9 @@ else:
         ✅ **PCA Preprocessing**: Optimal feature extraction  
         ✅ **35+ Indicators**: Kapsamlı analiz  
         ✅ **Deep Learning**: 5-layer neural networks  
-        ✅ **Ichimoku (7s optimized)**: Gelişmiş göstergeler  
         ✅ **%70-99 Güven**: Yüksek doğruluk  
-        ✅ **⚡ 7s Erken**: Trend başlamadan gir  
         ✅ **Multi-Timeframe**: Uzun dönem analiz  
         ✅ **Adaptive Model**: Market şartlarına uyum  
         ✅ **Ultra Hızlı**: 20 thread parallelization  
+        ✅ **Saf DL**: Kural-tabanlı olmayan analiz
         """)

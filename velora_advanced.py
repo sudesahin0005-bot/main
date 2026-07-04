@@ -38,7 +38,7 @@ SCALER_FILE = 'velora_dl_scaler.joblib'
 CACHE_FILE = 'velora_cache.pkl'
 CSV_FILE = 'sinyal_gecmisi_advanced.csv'
 EXCEL_FILE = 'velora_sinyaller_advanced.xlsx'
-EARLY_SIGNAL_SECONDS = 10  # 10 SANIYE ÖNCEDEN SINYAL VER
+EARLY_SIGNAL_SECONDS = 3.5  # 3.5 SANIYE ÖNCEDEN SINYAL VER (değiştirildi)
 
 # BINOMO ASSETS (43)
 ASSETS = {
@@ -105,7 +105,7 @@ class AdvancedSignalGenerator:
         return np.array(prices)
     
     def predict_next_movement(self, prices):
-        """Sonraki 10 saniyedeki (10 bar) fiyat hareketini tahmin et"""
+        """Sonraki 3.5 saniyedeki (3.5 bar) fiyat hareketini tahmin et"""
         # Son 5 barın ortalama farkını hesapla
         recent_changes = np.diff(prices[-5:])
         avg_change = np.mean(recent_changes)
@@ -114,10 +114,10 @@ class AdvancedSignalGenerator:
         # Trend hızı
         trend_strength = abs(avg_change) / (volatility + 1e-9)
         
-        # Sonraki 10 barın ortalama tahmini
-        predicted_next_10 = avg_change * trend_strength
+        # Sonraki 3.5 barın ortalama tahmini
+        predicted_next_3_5 = avg_change * trend_strength
         
-        return predicted_next_10, trend_strength
+        return predicted_next_3_5, trend_strength
     
     def calculate_rsi(self, prices, period=14):
         """Doğru RSI hesapla"""
@@ -234,7 +234,7 @@ class AdvancedSignalGenerator:
         # Price position
         price_range = (prices[-1] - np.min(prices[-20:])) / (np.max(prices[-20:]) - np.min(prices[-20:]) + 1e-9)
         
-        # EARLY PREDICTION - Sonraki 10 saniye tahmini
+        # EARLY PREDICTION - Sonraki 3.5 saniye tahmini
         predicted_movement, trend_strength = self.predict_next_movement(prices)
         
         features = np.array([
@@ -258,7 +258,7 @@ class AdvancedSignalGenerator:
             np.sign(momentum_3),
             abs(macd_hist),
             1 if prices[-1] > sma5 else -1,
-            predicted_movement,  # YENİ: Sonraki 10 saniye hareketi
+            predicted_movement,  # YENİ: Sonraki 3.5 saniye hareketi
             trend_strength  # YENİ: Trend gücü
         ])
         
@@ -395,7 +395,7 @@ class DeepEnsembleModel:
 
 # --- ADVANCED ANALYSIS WITH EARLY SIGNALS ---
 def advanced_analyze(asset, model, time_seed):
-    """Gelişmiş analiz - 10 SANIYE ÖNCESİNDEN SINYAL VER"""
+    """Gelişmiş analiz - 3.5 SANIYE ÖNCESİNDEN SINYAL VER"""
     gen = AdvancedSignalGenerator(asset, time_seed)
     
     # Gerçekçi fiyat verileri
@@ -455,7 +455,7 @@ def advanced_analyze(asset, model, time_seed):
         elif stoch > 70:
             sell_score += 15
         
-        # YENİ: Early Prediction Logic - 10 saniye öncesinden sinyal ver
+        # YENİ: Early Prediction Logic - 3.5 saniye öncesinden sinyal ver
         if predicted_move > 0:  # Fiyat yükselişe başlamak üzere
             buy_score += 30  # +30 bonus
         elif predicted_move < 0:  # Fiyat düşüşe başlamak üzere
@@ -504,9 +504,9 @@ def advanced_analyze(asset, model, time_seed):
     
     # YENİ: Early prediction kaynağını ekle
     if indicators['predicted_movement'] > 0:
-        sources.append("⚡EARLY_UP_10S")  # 10 saniye sonra yükselme öngörüsü
+        sources.append("⚡EARLY_UP_3.5S")  # 3.5 saniye sonra yükselme öngörüsü
     elif indicators['predicted_movement'] < 0:
-        sources.append("⚡EARLY_DOWN_10S")  # 10 saniye sonra düşüş öngörüsü
+        sources.append("⚡EARLY_DOWN_3.5S")  # 3.5 saniye sonra düşüş öngörüsü
     
     source = " + ".join(sources) if sources else "DL_ENSEMBLE"
     
@@ -522,7 +522,7 @@ def advanced_analyze(asset, model, time_seed):
         'ATR': round(indicators['atr'], 6),
         'Div': indicators['div_type'],
         'Source': source,
-        'Pred_10S': f"{indicators['predicted_movement']:+.4f}",  # YENİ: 10 saniye öngörüsü
+        'Pred_3.5S': f"{indicators['predicted_movement']:+.4f}",  # YENİ: 3.5 saniye öngörüsü
         'Timestamp': datetime.now().strftime('%H:%M:%S')
     }
 
@@ -601,7 +601,7 @@ st.set_page_config(
 )
 
 st.title("🧠 Velora Advanced: Deep Learning AI Trader")
-st.markdown("**🚀 Gerçek Derin Öğrenme | 45 Saniye Otomatik | ⚡10 SANİYE ERKEN SİNYAL | FARKLI Sinyaller | %70-95 Doğruluk**")
+st.markdown("**🚀 Gerçek Derin Öğrenme | 45 Saniye Otomatik | ⚡3.5 SANİYE ERKEN SİNYAL | FARKLI Sinyaller | %70-95 Doğruluk**")
 st.markdown("---")
 
 # Initialize session state
@@ -653,7 +653,7 @@ with col3:
 with col4:
     st.metric("📈 Ort. Güven", f"{st.session_state.avg_confidence}%")
 with col5:
-    st.metric("⚡ Early", "10 Saniye")
+    st.metric("⚡ Early", "3.5 Saniye")
 with col6:
     st.metric("🤖 Turlar", st.session_state.total_rounds)
 
@@ -694,7 +694,7 @@ if st.session_state.running:
         st.session_state.total_rounds += 1
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... ⚡(10s Erken)"):
+        with st.spinner(f"🔄 TUR {st.session_state.total_rounds}: {len(ALL_ASSETS)} Varlık Analiz Ediliyor... ⚡(3.5s Erken)"):
             # Parallel analysis with time seed for different results each time
             results = []
             with ThreadPoolExecutor(max_workers=20) as executor:
@@ -740,10 +740,10 @@ if st.session_state.running:
                 st.markdown("---")
                 
                 # Top signals - detaylı
-                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven) - ⚡10 Saniye Önceden")
+                st.subheader("🏆 En İyi Sinyaller (Yüksek Güven) - ⚡3.5 Saniye Önceden")
                 top_df = df_results.nlargest(20, 'Confidence')[[
                     'Asset', 'Signal', 'Confidence', 'RSI', 'MACD', 
-                    'Stoch', 'Momentum', 'Pred_10S', 'Source'
+                    'Stoch', 'Momentum', 'Pred_3.5S', 'Source'
                 ]].copy()
                 
                 # Renkli tablo
@@ -762,7 +762,7 @@ if st.session_state.running:
                 # Buy signals detaylı
                 buy_df = df_results[df_results['Signal'] == 'BUY'].sort_values('Confidence', ascending=False)
                 if not buy_df.empty:
-                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - ⚡10 Saniye Öncesinden")
+                    st.subheader(f"🟢 BUY SİNYALLERİ ({len(buy_df)}) - ⚡3.5 Saniye Öncesinden")
                     
                     cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
@@ -778,7 +778,7 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**Mom**")
                     with cols_header[6]:
-                        st.write("**10s Pred**")
+                        st.write("**3.5s Pred**")
                     with cols_header[7]:
                         st.write("**Kaynak**")
                     
@@ -799,7 +799,7 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['Momentum']:.6f}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #00AA00'>**{row['Pred_10S']}**</span>", unsafe_allow_html=True)
+                            st.write(f"<span style='color: #00AA00'>**{row['Pred_3.5S']}**</span>", unsafe_allow_html=True)
                         with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
@@ -808,7 +808,7 @@ if st.session_state.running:
                 # Sell signals detaylı
                 sell_df = df_results[df_results['Signal'] == 'SELL'].sort_values('Confidence', ascending=False)
                 if not sell_df.empty:
-                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - ⚡10 Saniye Öncesinden")
+                    st.subheader(f"🔴 SELL SİNYALLERİ ({len(sell_df)}) - ⚡3.5 Saniye Öncesinden")
                     
                     cols_header = st.columns([2, 1, 1, 1, 1, 1, 1, 2])
                     with cols_header[0]:
@@ -824,7 +824,7 @@ if st.session_state.running:
                     with cols_header[5]:
                         st.write("**Mom**")
                     with cols_header[6]:
-                        st.write("**10s Pred**")
+                        st.write("**3.5s Pred**")
                     with cols_header[7]:
                         st.write("**Kaynak**")
                     
@@ -845,7 +845,7 @@ if st.session_state.running:
                         with cols[5]:
                             st.metric("", f"{row['Momentum']:.6f}", label_visibility="collapsed")
                         with cols[6]:
-                            st.write(f"<span style='color: #FF0000'>**{row['Pred_10S']}**</span>", unsafe_allow_html=True)
+                            st.write(f"<span style='color: #FF0000'>**{row['Pred_3.5S']}**</span>", unsafe_allow_html=True)
                         with cols[7]:
                             st.write(f"<small>{row['Source']}</small>", unsafe_allow_html=True)
                 
@@ -859,7 +859,7 @@ if st.session_state.running:
         progress = time_since_refresh / 45
         
         st.progress(progress)
-        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde... (⚡10 saniye öncesinden sinyal verilecek)")
+        st.info(f"⏱️ Sonraki güncelleme: {remaining} saniye içinde... (⚡3.5 saniye öncesinden sinyal verilecek)")
         
         time.sleep(1)
         st.rerun()
@@ -884,12 +884,12 @@ else:
           - Divergence Detection (Bullish/Bearish)
           - Price Position & Volatility
         
-        ### ⚡ YENİ: 10 SANİYE ERKEN SİNYAL SISTEMI
-        - **Predictive Movement**: Sonraki 10 saniyedeki fiyat hareketini tahmin et
+        ### ⚡ YENİ: 3.5 SANİYE ERKEN SİNYAL SISTEMI
+        - **Predictive Movement**: Sonraki 3.5 saniyedeki fiyat hareketini tahmin et
         - **Trend Strength**: Trendin gücünü analiz et
         - **Early Entry**: Trend başladığında önceden sinyal ver
         - **+30 Bonus**: Early prediction doğru olunca +30 confidence bonus
-        - **⚡ EARLY_UP_10S / EARLY_DOWN_10S**: Kaynaklarında görülür
+        - **⚡ EARLY_UP_3.5S / EARLY_DOWN_3.5S**: Kaynaklarında görülür
         
         ### 🔄 Otomatik Güncelleme
         - **45 Saniyede Yenileme**: Her 45 saniyede TAMAMEN FARKLI sinyaller
@@ -942,6 +942,6 @@ else:
         ✅ **Farklı**: Her turda değişen sinyaller (time-based)  
         ✅ **Doğru**: %70-95 accuracy, 5 model consensus  
         ✅ **Otomatik**: Buton tıklandıktan sonra sürekli güncelleme  
-        ✅ **⚡ 10 Saniye Erken**: Trend başlamadan sinyal al  
+        ✅ **⚡ 3.5 Saniye Erken**: Trend başlamadan sinyal al  
         ✅ **İndir**: Excel ve CSV rapor indirilebiliyor  
         """)
